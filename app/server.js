@@ -24,11 +24,12 @@ function getFeedItemSync(feedItemId) {
     // need to check the type and have logic for each type.
     feedItem.contents.author =
         readDocument('users', feedItem.contents.author);
-    31
+
     // Resolve comment author.
     feedItem.comments.forEach((comment) => {
         comment.author = readDocument('users', comment.author);
     });
+
     return feedItem;
 }
 
@@ -103,12 +104,32 @@ export function postComment(feedItemId, author, contents, cb) {
     feedItem.comments.push({
         "author": author,
         "contents": contents,
-        "postDate": new Date().getTime()
+        "postDate": new Date().getTime(),
+        "postLikes": []
     });
     writeDocument('feedItems', feedItem);
     // Return a resolved version of the feed item so React can
     // render it.
     emulateServerReturn(getFeedItemSync(feedItemId), cb);
+}
+
+
+export function likePost(feedItemId, comment, userId, cb)
+{
+  var feedItem = readDocument('feedItems', feedItemId);
+  feedItem.comments[comment].postLikes.push(userId)
+  writeDocument('feedItems', feedItem);
+  emulateServerReturn(feedItem.comments[comment].postLikes.map((userId) =>
+      readDocument('users', userId)), cb);
+}
+
+export function disLikePost(feedItemId, comment, userId, cb)
+{
+  var feedItem = readDocument('feedItems', feedItemId);
+  feedItem.comments[comment].postLikes = feedItem.comments[comment].postLikes.filter(function(e) { return e !== userId })
+  writeDocument('feedItems', feedItem);
+  emulateServerReturn(feedItem.comments[comment].postLikes.map((userId) =>
+      readDocument('users', userId)), cb);
 }
 
 /**
